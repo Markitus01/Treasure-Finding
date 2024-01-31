@@ -86,49 +86,79 @@ function crear_form_f()
 
     let input = document.createElement("input");
     input.setAttribute("type", "number");
+    input.setAttribute("name", "distancia");
     input.setAttribute("max", "1000");
-    input.setAttribute("min", "0");
+    input.setAttribute("min", "1");
     input.setAttribute("placeholder", "Ex: 33");
     form.appendChild(input);
+    
+    let br2 = document.createElement("br");
+    form.appendChild(br2);
+
+    // Submit
+    let submit = document.createElement("input");
+    submit.setAttribute("type", "submit");
+    submit.setAttribute("name", "submit");
+    submit.setAttribute("value", "Moure's");
+    form.appendChild(submit);
 }
 
 function crear_mapa_f()
 {
     let coordenades = EL_MEU_LLOC;
-    console.info(coordenades);
-    let zoom = 16; // com més gran, més aprop del lloc
+    console.log(coordenades);
+    let zoom = 14;
     let map = L.map('mapa').setView(coordenades, zoom);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 20,
-    minZoom: 14,
+    minZoom: 10,
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
-    marcador_f(map)
+    moviment_f(map);
 }
 
-function marcador_f(map)
+function moviment_f(map)
 {
+    let formulari = document.forms[0];
+    let direccio, distancia;
+    let pos = [];
     let m = L.marker(EL_MEU_LLOC).addTo(map);  
 
     m.bindPopup("<b>Punt inicial</b>").openPopup();
-    
-    let pos = [];
     pos.push(...EL_MEU_LLOC);
-    // latitud 90 -90
-    // longitud 180 -180
-    //pos[0]= pos[0]-0.002;// restar latitud desplaçament al sud
-    pos[0]= pos[0]+0.05; // sumar latitud desplaçament al nord
-    //pos[1]= pos[1]-0.02; // restar longitud desplaçament al oest
-    //pos[1]= pos[1]+0.05; // sumar longitud desplaçament a l'est
-    
-    // PUNTS EXTREMS MAPA
-    //pos=[75,180]; // nord,est
-    //pos=[180,-75];// nord,oest
-    //pos=[-75,180]; // sud,est
-    //pos=[-75,-180]; // sud,oest
-    
-    // console.info(pos);
-    // L.marker(pos).addTo(map).bindPopup("<i>Aquí no hi som</i>");
+
+    formulari.addEventListener("submit", function(e)
+    {
+        e.preventDefault();
+        
+        direccio = document.getElementsByName("sel_dir")[0];
+        distancia = document.getElementsByName("distancia")[0];
+
+        switch (direccio.value)
+        {
+            case "amunt":
+                pos[0] = pos[0] + (distancia.value/100000);
+                break;
+
+            case "abaix":
+                pos[0] = pos[0] - (distancia.value/100000);
+                break;
+
+            case "esquerra":
+                pos[1] = pos[1] - (distancia.value/100000);
+                break;
+
+            case "dreta":
+                pos[1] = pos[1] + (distancia.value/100000);
+                break;
+        
+            default:
+                console.log("Error en la direcció");
+                break;
+        }
+
+        L.marker(pos).addTo(map);
+    });
 }
