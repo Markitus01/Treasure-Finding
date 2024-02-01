@@ -15,8 +15,9 @@ function main_f()
 
 function funcioOk(p)
 {
-    EL_MEU_LLOC[0] = p.coords.latitude;
-    EL_MEU_LLOC[1] = p.coords.longitude;
+    // Multipliquem x 1 per transformar la cadena que retorna el toFixed en un numero
+    EL_MEU_LLOC[0] = p.coords.latitude.toFixed(3)*1;
+    EL_MEU_LLOC[1] = p.coords.longitude.toFixed(3)*1;
 
     crear_form_f();
     crear_mapa_f();
@@ -106,7 +107,6 @@ function crear_form_f()
 function crear_mapa_f()
 {
     let coordenades = EL_MEU_LLOC;
-    console.log(coordenades);
     let zoom = 14;
     let map = L.map('mapa').setView(coordenades, zoom);
 
@@ -116,20 +116,26 @@ function crear_mapa_f()
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
-    moviment_f(map);
-    amagar_tresor_f(map);
+    let ubi_tresor = amagar_tresor_f();
+    moviment_f(map, ubi_tresor);
 }
 
-function moviment_f(map)
+function moviment_f(map, tresor)
 {
     let formulari = document.forms[0];
+    let label_pista = document.createElement("label");
+    formulari.appendChild(label_pista);
+
     let direccio, distancia;
     let historia_moviment = [];
     let pos = [];
-    let m = L.marker(EL_MEU_LLOC).addTo(map);  
+    let m_ini = L.marker(EL_MEU_LLOC).addTo(map);  // Marcador inicial
+    let m_act; // Marcador actual
 
-    m.bindPopup("<b>Punt inicial</b>").openPopup();
+    m_ini.bindPopup("<b>Punt inicial</b>").openPopup();
     pos.push(...EL_MEU_LLOC);
+    L.marker(tresor).addTo(map);
+    historia_moviment.push(pos.slice()); // Afegim la posicio inicial com a primera posició al historial 
 
     formulari.addEventListener("submit", function(e)
     {
@@ -140,8 +146,14 @@ function moviment_f(map)
 
         if (distancia.value != "")
         {
-            // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
+            // Si el marcador actual existeix, l'eliminem ja que será substituit pel nou
+            if (m_act)
+            {
+                map.removeLayer(m_act);
+            }
+
             let novaPos = pos.slice(); // Fem una copia de pos
+
             switch (direccio.value)
             {
                 case "amunt":
@@ -166,14 +178,63 @@ function moviment_f(map)
             }
 
             historia_moviment.push(novaPos);
+            // console.log(historia_moviment);
             /** INFO:
-             * Hem de treballar amb una copia de "pos" "novaPos", ja que si no a l'hora de fer
+             * Hem de treballar amb una copia de "pos" > "novaPos", ja que si no a l'hora de fer
              * push al historial de moviments utilitzant "pos" totes les posicions de l'historial
-             * apuntaríen a la mateixa coordenada.
+             * acaben fent referencia a la ultima coordenada.
              */
-            console.log(historia_moviment);
-            pos = novaPos; // Actualitzem pos
-            L.marker(pos).addTo(map);
+            // Actualitzem posició
+            pos[0] = novaPos[0].toFixed(3)*1;
+            pos[1] = novaPos[1].toFixed(3)*1;
+            m_act = L.marker(novaPos).addTo(map).bindPopup("<b>Punt actual</b>").openPopup();
+
+            console.log(tresor, "Tresor");
+            console.log(pos, "Tu");
+
+            // Parsejem els arrays a strings per facilitar la comparació
+            if (pos.toString() === tresor.toString())
+            {
+                alert("ENHORABONA, HAS TROBAT EL TRESOR");
+
+                // Un cop trobat el tresor deshabilitem inputs
+                document.getElementsByName("sel_dir")[0].disabled = true;
+                document.getElementsByName("distancia")[0].disabled = true;
+                document.getElementsByName("submit")[0].disabled = true;
+                
+                let linea = L.polyline(historia_moviment, { color: 'blue' }).addTo(map);
+
+                let arrowHead = L.polylineDecorator(linea, {
+                    patterns: [
+                        { offset: '100%', repeat: 0, symbol: L.Symbol.arrowHead({ pixelSize: 10, polygon: false, pathOptions: { color: 'blue' } }) }
+                    ]
+                }).addTo(map);
+
+                label_pista.textContent = ""; // Netejem label pista si guanya
+            }
+            else // Si no l'ha trobat li donem una pista 
+            {
+                let pista = "Pista: ";
+                if (novaPos[0] > tresor[0])
+                {
+                    pista += "més abaix ";
+                }
+                else if (novaPos[0] < tresor[0])
+                {
+                    pista += "més amunt ";
+                }
+
+                if (novaPos[1] > tresor[1])
+                {
+                    pista += "a l'esquerra ";
+                }
+                else if (novaPos[1] < tresor[1])
+                {
+                    pista += "a la dreta. ";
+                }
+
+                label_pista.textContent = pista;
+            }
         }
         else
         {
@@ -182,13 +243,27 @@ function moviment_f(map)
     });
 }
 
-function amagar_tresor_f(map)
+/** La funció crea 4 posibles posicions on amagar el tresor i retorna 1 */
+function amagar_tresor_f()
 {
-    console.log(numRandom_f(1, 2));
+    let coords = EL_MEU_LLOC;
+
+    let ubis = []; // Array on guardarem les 4 posibles ubicacions
+
+    for (let i = 0; i < 4; i++)
+    {
+        let tresor_lat = generarCoordenades(coords[0]-0.02, coords[0]+0.02, 3);
+        let tresor_lon = generarCoordenades(coords[1]-0.02, coords[1]+0.02, 3);
+        let tresor_ubi = [tresor_lat, tresor_lon];
+
+        ubis.push(tresor_ubi);
+    }
+    // console.log(ubis);
+    return ubis[Math.floor(Math.random() * ubis.length)];
 }
 
-function numRandom_f(min, max)
+// https://stackoverflow.com/questions/6878761/javascript-how-to-create-random-longitude-and-latitudes
+function generarCoordenades(from, to, fixed)
 {
-    let random = (Math.random() * (max - min + 1)) + 1; 
-    return random.toFixed(3);
+    return (Math.random() * (to - from) + from).toFixed(fixed) * 1;
 }
