@@ -87,9 +87,9 @@ function crear_form_f()
     let input = document.createElement("input");
     input.setAttribute("type", "number");
     input.setAttribute("name", "distancia");
-    input.setAttribute("max", "1000");
+    input.setAttribute("max", "8");
     input.setAttribute("min", "1");
-    input.setAttribute("placeholder", "Ex: 33");
+    input.setAttribute("placeholder", "Ex: 4");
     form.appendChild(input);
     
     let br2 = document.createElement("br");
@@ -117,12 +117,14 @@ function crear_mapa_f()
     }).addTo(map);
 
     moviment_f(map);
+    amagar_tresor_f(map);
 }
 
 function moviment_f(map)
 {
     let formulari = document.forms[0];
     let direccio, distancia;
+    let historia_moviment = [];
     let pos = [];
     let m = L.marker(EL_MEU_LLOC).addTo(map);  
 
@@ -136,29 +138,57 @@ function moviment_f(map)
         direccio = document.getElementsByName("sel_dir")[0];
         distancia = document.getElementsByName("distancia")[0];
 
-        switch (direccio.value)
+        if (distancia.value != "")
         {
-            case "amunt":
-                pos[0] = pos[0] + (distancia.value/100000);
-                break;
+            // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
+            let novaPos = pos.slice(); // Fem una copia de pos
+            switch (direccio.value)
+            {
+                case "amunt":
+                    novaPos[0] = pos[0] + (distancia.value/1000);
+                    break;
 
-            case "abaix":
-                pos[0] = pos[0] - (distancia.value/100000);
-                break;
+                case "abaix":
+                    novaPos[0] = pos[0] - (distancia.value/1000);
+                    break;
 
-            case "esquerra":
-                pos[1] = pos[1] - (distancia.value/100000);
-                break;
+                case "esquerra":
+                    novaPos[1] = pos[1] - (distancia.value/1000);
+                    break;
 
-            case "dreta":
-                pos[1] = pos[1] + (distancia.value/100000);
-                break;
-        
-            default:
-                console.log("Error en la direcció");
-                break;
+                case "dreta":
+                    novaPos[1] = pos[1] + (distancia.value/1000);
+                    break;
+            
+                default:
+                    console.log("Error en la direcció");
+                    break;
+            }
+
+            historia_moviment.push(novaPos);
+            /** INFO:
+             * Hem de treballar amb una copia de "pos" "novaPos", ja que si no a l'hora de fer
+             * push al historial de moviments utilitzant "pos" totes les posicions de l'historial
+             * apuntaríen a la mateixa coordenada.
+             */
+            console.log(historia_moviment);
+            pos = novaPos; // Actualitzem pos
+            L.marker(pos).addTo(map);
         }
-
-        L.marker(pos).addTo(map);
+        else
+        {
+            alert("Introdueix distancia!");
+        }
     });
+}
+
+function amagar_tresor_f(map)
+{
+    console.log(numRandom_f(1, 2));
+}
+
+function numRandom_f(min, max)
+{
+    let random = (Math.random() * (max - min + 1)) + 1; 
+    return random.toFixed(3);
 }
